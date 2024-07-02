@@ -1,87 +1,83 @@
-// Constante para la tasa de interés anual
-const TASA_INTERES = 0.04;
+// Evento para el botón "Calcular"
+document.getElementById('calcular').addEventListener('click', ejecutarSimulador);
 
-// Función para solicitar y validar el monto inicial
-function obtenerMontoInicial() {
-    let valido = false;
-    let montoInicial;
-    while (!valido) {
-        montoInicial = parseFloat(prompt("Ingrese el monto inicial:"));
-        if (!isNaN(montoInicial) && montoInicial > 0) {
-            valido = true;
-        } else {
-            alert("Por favor, ingrese un monto válido.");
-        }
+// Función para obtener el valor de un input y validar su contenido
+function obtenerValor(id, errorId) {
+    const valor = parseFloat(document.getElementById(id).value);
+    const errorElement = document.getElementById(errorId);
+    
+    // Verificar si el valor es un número válido y mayor que cero
+    if (isNaN(valor) || valor <= 0) {
+        errorElement.textContent = `Por favor, ingrese un valor válido`;
+        return null;
+    } else {
+        errorElement.textContent = ''; // Limpiar cualquier mensaje de error previo
+        return valor;
     }
-    return montoInicial;
-}
-
-// Función para solicitar y validar la cantidad de años
-function obtenerCantidadAnios() {
-    let valido = false;
-    let cantidadAnios;
-    while (!valido) {
-        cantidadAnios = parseInt(prompt("Ingrese la cantidad de años:"));
-        if (!isNaN(cantidadAnios) && cantidadAnios > 0) {
-            valido = true;
-        } else {
-            alert("Por favor, ingrese una cantidad de años válida.");
-        }
-    }
-    return cantidadAnios;
-}
-
-// Función para solicitar y validar el monto anual agregado
-function obtenerMontoAnualAgregado() {
-    let valido = false;
-    let montoAnualAgregado;
-    while (!valido) {
-        montoAnualAgregado = parseFloat(prompt("Ingrese el monto anual agregado:"));
-        if (!isNaN(montoAnualAgregado) && montoAnualAgregado >= 0) {
-            valido = true;
-        } else {
-            alert("Por favor, ingrese un monto válido.");
-        }
-    }
-    return montoAnualAgregado;
 }
 
 // Función para calcular el interés compuesto
-function calcularInteresCompuesto(montoInicial, cantidadAnios, montoAnualAgregado) {
+function calcularInteresCompuesto(montoInicial, cantidadAnios, montoAnualAgregado, tasaInteres) {
     let montoTotal = montoInicial;
     let resultadosAnuales = [];
+
+    // Calcular el monto total para cada año
     for (let i = 0; i < cantidadAnios; i++) {
-        montoTotal = (montoTotal + montoAnualAgregado) * (1 + TASA_INTERES);
+        montoTotal = (montoTotal + montoAnualAgregado) * (1 + tasaInteres / 100);
         resultadosAnuales.push(montoTotal);
     }
     return resultadosAnuales;
 }
 
-// Función para mostrar el resultado
+// Función para mostrar el resultado en el HTML
 function mostrarResultado(resultadosAnuales) {
-    console.log("Resultados Anuales:");
+    const resumen = document.getElementById('resumen');
+    const tablaResultados = document.getElementById('tablaResultados').querySelector('tbody');
+    const gastoPromedio = document.getElementById('gastoPromedio');
+    // Mostrar resumen del monto total después de todos los años    
+    resumen.textContent = `Después de ${resultadosAnuales.length} años, el monto total es de $${resultadosAnuales[resultadosAnuales.length - 1].toFixed(2)}.`;
+
+    // Limpiar la tabla de resultados previa
+    tablaResultados.innerHTML = '';
+
+    // Añadir los resultados anuales a la tabla
     resultadosAnuales.forEach((resultado, index) => {
-        console.log("Año " + (index + 1) + ": $" + resultado.toFixed(2));
+        const row = tablaResultados.insertRow();
+        const cellAnio = row.insertCell(0);
+        const cellMonto = row.insertCell(1);
+        cellAnio.textContent = `Año ${index + 1}`;
+        cellMonto.textContent = `$${resultado.toFixed(2)}`;
     });
-    alert("Resultados Anuales:\n\n" + resultadosAnuales.map((resultado, index) => "Año " + (index + 1) + ": $" + resultado.toFixed(2)).join("\n"));
-  
-    // Calcular gasto promedio anual para sobrevivir durante 15 años con el monto del último año
+
+    // Calcular y mostrar el gasto promedio anual para 20 años
     const ultimoAnio = resultadosAnuales[resultadosAnuales.length - 1];
-    const gastoPromedioAnual = ultimoAnio / 15;
-  
-    // Mostrar en consola y en un cuadro de alerta
-    console.log("Gasto promedio anual necesario para sobrevivir durante 15 años: $" + gastoPromedioAnual.toFixed(2));
-    alert("Gasto promedio anual necesario para sobrevivir durante 15 años: $" + gastoPromedioAnual.toFixed(2));
+    const gastoPromedioAnual = ultimoAnio / 20;
+    gastoPromedio.innerHTML = `Gasto promedio anual para vivir durante 20 años (tipo jubilación): $${gastoPromedioAnual.toFixed(2)}`;
 }
 
-// Función principal para ejecutar el simulador
+// Función para guardar los datos de la simulación en el LocalStorage
+function guardarEnLocalStorage(montoInicial, cantidadAnios, montoAnualAgregado, tasaInteres, resultadosAnuales) {
+    const simulacion = {
+        montoInicial,
+        cantidadAnios,
+        montoAnualAgregado,
+        tasaInteres,
+        resultadosAnuales
+    };
+    localStorage.setItem('simulacion', JSON.stringify(simulacion));
+}
+
+// Función principal que ejecuta el simulador
 function ejecutarSimulador() {
-    const montoInicial = obtenerMontoInicial();
-    const cantidadAnios = obtenerCantidadAnios();
-    const montoAnualAgregado = obtenerMontoAnualAgregado();
-    const resultadosAnuales = calcularInteresCompuesto(montoInicial, cantidadAnios, montoAnualAgregado);
-    mostrarResultado(resultadosAnuales);
-}
+    const montoInicial = obtenerValor('montoInicial', 'errorMontoInicial');
+    const cantidadAnios = obtenerValor('cantidadAnios', 'errorCantidadAnios');
+    const montoAnualAgregado = obtenerValor('montoAnualAgregado', 'errorMontoAnualAgregado');
+    const tasaInteres = obtenerValor('tasaInteres', 'errorTasaInteres');
 
-// Ejecutar el simulador
-ejecutarSimulador();
+    // Si todos los valores son válidos, realizar los cálculos
+    if (montoInicial && cantidadAnios && montoAnualAgregado && tasaInteres) {
+        const resultadosAnuales = calcularInteresCompuesto(montoInicial, cantidadAnios, montoAnualAgregado, tasaInteres);
+        guardarEnLocalStorage(montoInicial, cantidadAnios, montoAnualAgregado, tasaInteres, resultadosAnuales);
+        mostrarResultado(resultadosAnuales);
+    }
+}
