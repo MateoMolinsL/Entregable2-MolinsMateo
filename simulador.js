@@ -1,27 +1,37 @@
-// Evento para el botón "Calcular"
+let chart = null;
+
 document.getElementById('calcular').addEventListener('click', ejecutarSimulador);
 
-// Función para obtener el valor de un input y validar su contenido
+async function cargarDatosIniciales() {
+    const response = await fetch('data.json');
+    const data = await response.json();
+    console.log(data); // Mostrar los datos cargados en la consola para verificar
+    return data.simulationData[0];
+}
+
+async function inicializarSimulador() {
+    const datosIniciales = await cargarDatosIniciales();
+    // Mostrar los datos en la consola, pero no prellenar los campos de entrada
+    console.log("Datos iniciales cargados:", datosIniciales);
+}
+
 function obtenerValor(id, errorId) {
     const valor = parseFloat(document.getElementById(id).value);
     const errorElement = document.getElementById(errorId);
-    
-    // Verificar si el valor es un número válido y mayor que cero
+
     if (isNaN(valor) || valor <= 0) {
-        errorElement.textContent = `Por favor, ingrese un valor válido`;
+        errorElement.textContent = 'Por favor, ingrese un valor válido';
         return null;
     } else {
-        errorElement.textContent = ''; // Limpiar cualquier mensaje de error previo
+        errorElement.textContent = '';
         return valor;
     }
 }
 
-// Función para calcular el interés compuesto
 function calcularInteresCompuesto(montoInicial, cantidadAnios, montoAnualAgregado, tasaInteres) {
     let montoTotal = montoInicial;
     let resultadosAnuales = [];
 
-    // Calcular el monto total para cada año
     for (let i = 0; i < cantidadAnios; i++) {
         montoTotal = (montoTotal + montoAnualAgregado) * (1 + tasaInteres / 100);
         resultadosAnuales.push(montoTotal);
@@ -29,18 +39,15 @@ function calcularInteresCompuesto(montoInicial, cantidadAnios, montoAnualAgregad
     return resultadosAnuales;
 }
 
-// Función para mostrar el resultado en el HTML
 function mostrarResultado(resultadosAnuales) {
     const resumen = document.getElementById('resumen');
     const tablaResultados = document.getElementById('tablaResultados').querySelector('tbody');
     const gastoPromedio = document.getElementById('gastoPromedio');
-    // Mostrar resumen del monto total después de todos los años    
+
     resumen.textContent = `Después de ${resultadosAnuales.length} años, el monto total es de $${resultadosAnuales[resultadosAnuales.length - 1].toFixed(2)}.`;
 
-    // Limpiar la tabla de resultados previa
     tablaResultados.innerHTML = '';
 
-    // Añadir los resultados anuales a la tabla
     resultadosAnuales.forEach((resultado, index) => {
         const row = tablaResultados.insertRow();
         const cellAnio = row.insertCell(0);
@@ -49,13 +56,50 @@ function mostrarResultado(resultadosAnuales) {
         cellMonto.textContent = `$${resultado.toFixed(2)}`;
     });
 
-    // Calcular y mostrar el gasto promedio anual para 20 años
     const ultimoAnio = resultadosAnuales[resultadosAnuales.length - 1];
     const gastoPromedioAnual = ultimoAnio / 20;
     gastoPromedio.innerHTML = `Gasto promedio anual para vivir durante 20 años (tipo jubilación): $${gastoPromedioAnual.toFixed(2)}`;
+
+    mostrarGrafico(resultadosAnuales);
 }
 
-// Función para guardar los datos de la simulación en el LocalStorage
+function mostrarGrafico(resultadosAnuales) {
+    const ctx = document.getElementById('chartCanvas').getContext('2d');
+    const labels = resultadosAnuales.map((_, index) => `Año ${index + 1}`);
+    const data = {
+        labels: labels,
+        datasets: [{
+            label: 'Monto Anual',
+            data: resultadosAnuales,
+            borderColor: 'rgba(75, 192, 192, 1)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(75, 192, 192, 1)',
+            pointRadius: 5,
+            pointHoverRadius: 7
+        }]
+    };
+
+    if (chart) {
+        chart.destroy(); // Destruir el gráfico existente antes de crear uno nuevo
+    }
+
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: data,
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
 function guardarEnLocalStorage(montoInicial, cantidadAnios, montoAnualAgregado, tasaInteres, resultadosAnuales) {
     const simulacion = {
         montoInicial,
@@ -67,17 +111,17 @@ function guardarEnLocalStorage(montoInicial, cantidadAnios, montoAnualAgregado, 
     localStorage.setItem('simulacion', JSON.stringify(simulacion));
 }
 
-// Función principal que ejecuta el simulador
 function ejecutarSimulador() {
     const montoInicial = obtenerValor('montoInicial', 'errorMontoInicial');
     const cantidadAnios = obtenerValor('cantidadAnios', 'errorCantidadAnios');
     const montoAnualAgregado = obtenerValor('montoAnualAgregado', 'errorMontoAnualAgregado');
     const tasaInteres = obtenerValor('tasaInteres', 'errorTasaInteres');
 
-    // Si todos los valores son válidos, realizar los cálculos
     if (montoInicial && cantidadAnios && montoAnualAgregado && tasaInteres) {
         const resultadosAnuales = calcularInteresCompuesto(montoInicial, cantidadAnios, montoAnualAgregado, tasaInteres);
         guardarEnLocalStorage(montoInicial, cantidadAnios, montoAnualAgregado, tasaInteres, resultadosAnuales);
         mostrarResultado(resultadosAnuales);
     }
 }
+
+inicializarSimulador();
